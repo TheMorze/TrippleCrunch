@@ -11,6 +11,7 @@ class FSMChatGPT(StatesGroup):
     """
     Состояния для взаимодействия с ChatGPT.
     """
+    choosing_model = State()
     waiting_for_message = State()   # Ожидание сообщения от пользователя
     processing_message = State()    # Обработка сообщения
     sending_response = State()      # Отправка ответа пользователю

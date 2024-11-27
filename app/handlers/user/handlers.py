@@ -8,12 +8,19 @@ from loguru import logger
 
 from app.database.requests import Database
 from app.FSM.fsm import FSMSettings, FSMChatGPT
+from aiogram.fsm.state import default_state
 from app.keyboards.inline_keyboards import (
     get_settings_keyboard,
     get_change_language_keyboard,
     get_change_theme_keyboard,
-    get_cancel_keyboard
+    get_cancel_keyboard,
+    get_choose_model_keyboard
 )
+
+from app.keyboards.reply_keyboards import (
+    get_menu_keyboard
+)
+
 
 router = Router()
 
@@ -33,8 +40,18 @@ async def cmd_start(message: Message):
     else:
         welcome_text = f"С возвращением, {fullname}!\nВаш профиль уже существует."
 
-    await message.answer(welcome_text)
+    await message.answer(welcome_text, reply_markup=await get_menu_keyboard())
     logger.info(f"User {username} (ID: {user_id}) started the bot.")
+
+
+@router.message(F.text == "🗨️ Запустить чат")
+async def msg_chat(message: Message):
+    """
+    Обработчик сообщения "🗨️ Запустить чат".
+    Предлагает выбрать модель для чата.
+    """
+    await message.answer("Выберите модель для чата:", reply_markup=await get_cancel_keyboard())
+
 
 @router.message(Command("settings"))
 async def cmd_settings(message: Message):
@@ -179,18 +196,44 @@ async def callback_cancel(callback: CallbackQuery, state: FSMContext):
     Обработчик для отмены текущего действия.
     """
     await state.clear()
-    await callback.message.edit_text("Action canceled.")
+    await callback.message.delete()
+
+    await callback.message.answer("Действие отменено.", reply_markup=await get_menu_keyboard())
+
     logger.info(f"User (ID: {callback.from_user.id}) canceled the action.")
+
     await callback.answer()
 
-@router.message(Command("chat"))
+@router.message(Command("chat") | F.text == "🗨️ Запустить чат")
 async def cmd_chat(message: Message, state: FSMContext):
     """
-    Обработчик команды /chat для начала взаимодействия с ChatGPT.
+    Обработчик сообщения "🗨️ Запустить чат" и команды "/chat".
+    Предлагает выбрать модель для чата.
     """
+    await state.set_state(FSMChatGPT.choosing_model)
+
+    await message.answer("Выберите модель для чата:", reply_markup=await get_choose_model_keyboard())
+    logger.info(f"User (ID: {message.from_user.id}) is choosing a model with ChatGPT.")
+
+@router.callback_query(F.data.startswith("choice_"), StateFilter(FSMChatGPT.choosing_model))
+async def callback_choose_model(callback: CallbackQuery, state: FSMContext):
+    """
+    Обработчик выбора модели для чата.
+    """
+    model = callback.data.split("_")[-1]
+    user_id = callback.from_user.id
+
+    success = await Database.set_user_setting(user_id=user_id, setting="chat_model", value=model)
+    if success:
+        model_full = "GPT4o" if model == "gpt4o" else "Сценарный"
+        await callback.message.edit_text(f"Модель успешно изменена на {model_full}.")
+        logger.info(f"User (ID: {user_id}) changed chat model to {model}.")
+    else:
+        await callback.message.edit_text("Не удалось изменить модель. Попробуйте позже.")
+        logger.error(f"Failed to change chat model for user (ID: {user_id}).")
+
     await state.set_state(FSMChatGPT.waiting_for_message)
-    await message.answer("Привет! Спроси меня любой вопрос — и я помогу тебе.")
-    logger.info(f"User (ID: {message.from_user.id}) started a chat with ChatGPT.")
+    await callback.answer()
 
 @router.message(StateFilter(FSMChatGPT.waiting_for_message))
 async def process_chat_message(message: Message, state: FSMContext):

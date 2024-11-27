@@ -44,6 +44,23 @@ async def get_change_language_keyboard():
     return keyboard
 
 
+async def get_choose_model_keyboard():
+    """
+    Создание клавиатуры для выбора языка.
+    """
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="GPT4o", callback_data="choice_gpt4o"),
+                InlineKeyboardButton(text="Сценарный", callback_data="choice_scenary"),
+            ],
+            [
+                InlineKeyboardButton(text="Отмена", callback_data="cancel")
+            ]
+        ]
+    )
+    return keyboard
+
 async def get_change_theme_keyboard():
     """
     Создание клавиатуры для выбора темы.

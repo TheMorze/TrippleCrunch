@@ -25,6 +25,7 @@ class UserData(Base):
     language: Mapped[str] = mapped_column(String(10), default='ru')  # Настройка языка пользователя
     notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True)  # Настройка уведомлений
     theme: Mapped[str] = mapped_column(String(20), default='light')  # Настройка темы интерфейса
+    chat_model: Mapped[str] = mapped_column(String(20), default=None)  # Настройка модели ChatGPT
 
     # Дополнительные поля для интеграции с ChatGPT
     conversation_history: Mapped[str] = mapped_column(String, default='')  # История разговоров пользователя

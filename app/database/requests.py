@@ -175,9 +175,8 @@ class Database:
         :param value: Значение настройки.
         :return: True, если настройка установлена успешно, иначе False.
         """
-        allowed_settings = {"language", "notifications_enabled", "theme"}
+        allowed_settings = {"language", "notifications_enabled", "theme", "chat_model"}
         if setting not in allowed_settings:
             logger.warning(f"Attempted to set unknown setting: {setting}")
             return False
         return await cls.update_user_data(user_id, **{setting: value})
-
