@@ -1,92 +1,128 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from app.database.requests import Database
-from loguru import logger
 
+async def get_settings_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
+    """
+    Создание клавиатуры для настроек пользователя с динамической кнопкой языка.
 
-async def get_settings_keyboard(notifications_enabled: bool):
+    :param lang: Язык пользователя ('ru' или 'en').
+    :return: Объект InlineKeyboardMarkup с кнопками настроек.
     """
-    Создание клавиатуры для настроек пользователя с динамической кнопкой уведомлений.
-    """
-    notifications_text = "Уведомления включены ✅" if notifications_enabled else "Уведомления выключены ❌"
+    if lang == 'ru':
+        language_button_text = "Язык: 🇷🇺 Русский"
+        hide_button_text = "Скрыть"
+    else:
+        language_button_text = "Language: 🇬🇧 English"
+        hide_button_text = "Hide"
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Изменить язык", callback_data="change_language"),
-                InlineKeyboardButton(text="Изменить тему", callback_data="change_theme"),
+                InlineKeyboardButton(text=language_button_text, callback_data="change_language"),
             ],
             [
-                InlineKeyboardButton(text=notifications_text, callback_data="toggle_notifications"),
-            ],
-            [
-                InlineKeyboardButton(text="Назад", callback_data="back")
+                InlineKeyboardButton(text=hide_button_text, callback_data="hide")
             ]
         ]
     )
     return keyboard
 
 
-async def get_change_language_keyboard():
+async def get_choose_model_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
     """
-    Создание клавиатуры для выбора языка.
+    Создание клавиатуры для выбора модели.
+
+    :param lang: Язык пользователя ('ru' или 'en').
+    :return: Объект InlineKeyboardMarkup с кнопками выбора модели.
     """
+    if lang == 'ru':
+        gpt4o_text = "🚀 GPT4o"
+        scenary_text = "👾 Сценарный"
+        hide_text = "Скрыть"
+    else:
+        gpt4o_text = "🚀 GPT4o"
+        scenary_text = "👾 Scenary"
+        hide_text = "Hide"
+
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Русский", callback_data="set_language_ru"),
-                InlineKeyboardButton(text="Английский", callback_data="set_language_en"),
+                InlineKeyboardButton(text=gpt4o_text, callback_data="choice_gpt4o"),
+                InlineKeyboardButton(text=scenary_text, callback_data="choice_scenary"),
             ],
             [
-                InlineKeyboardButton(text="Отмена", callback_data="cancel")
+                InlineKeyboardButton(text=hide_text, callback_data="hide")
             ]
         ]
     )
     return keyboard
 
 
-async def get_choose_model_keyboard():
+async def get_approve_gpt4o_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
     """
-    Создание клавиатуры для выбора языка.
-    """
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="GPT4o", callback_data="choice_gpt4o"),
-                InlineKeyboardButton(text="Сценарный", callback_data="choice_scenary"),
-            ],
-            [
-                InlineKeyboardButton(text="Отмена", callback_data="cancel")
-            ]
-        ]
-    )
-    return keyboard
+    Создание клавиатуры для подтверждения выбора модели GPT4o.
 
-async def get_change_theme_keyboard():
+    :param lang: Язык пользователя ('ru' или 'en').
+    :return: Объект InlineKeyboardMarkup с кнопками подтверждения.
     """
-    Создание клавиатуры для выбора темы.
-    """
+    if lang == 'ru':
+        yes_text = "✅ Да"
+        no_text = "❌ Нет"
+    else:
+        yes_text = "✅ Yes"
+        no_text = "❌ No"
+
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Светлая", callback_data="set_theme_light"),
-                InlineKeyboardButton(text="Тёмная", callback_data="set_theme_dark"),
-            ],
-            [
-                InlineKeyboardButton(text="Отмена", callback_data="cancel")
+                InlineKeyboardButton(text=yes_text, callback_data="approve_gpt4o"),
+                InlineKeyboardButton(text=no_text, callback_data="refuse")
             ]
         ]
     )
     return keyboard
 
 
-async def get_cancel_keyboard():
+async def get_approve_scenary_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
+    """
+    Создание клавиатуры для подтверждения выбора модели Сценарный.
+
+    :param lang: Язык пользователя ('ru' или 'en').
+    :return: Объект InlineKeyboardMarkup с кнопками подтверждения.
+    """
+    if lang == 'ru':
+        yes_text = "✅ Да"
+        no_text = "❌ Нет"
+    else:
+        yes_text = "✅ Yes"
+        no_text = "❌ No"
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=yes_text, callback_data="approve_scenary"),
+                InlineKeyboardButton(text=no_text, callback_data="hide")
+            ]
+        ]
+    )
+    return keyboard
+
+
+async def get_hide_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
     """
     Создание клавиатуры для отмены действия.
+
+    :param lang: Язык пользователя ('ru' или 'en').
+    :return: Объект InlineKeyboardMarkup с кнопкой отмены.
     """
+    if lang == 'ru':
+        hide_text = "Скрыть"
+    else:
+        hide_text = "Hide"
+
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Отмена", callback_data="cancel")
+                InlineKeyboardButton(text=hide_text, callback_data="hide")
             ]
         ]
     )

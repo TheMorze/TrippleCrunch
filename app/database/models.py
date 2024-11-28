@@ -23,9 +23,7 @@ class UserData(Base):
 
     registration_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     language: Mapped[str] = mapped_column(String(10), default='ru')  # Настройка языка пользователя
-    notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True)  # Настройка уведомлений
-    theme: Mapped[str] = mapped_column(String(20), default='light')  # Настройка темы интерфейса
-    chat_model: Mapped[str] = mapped_column(String(20), default=None)  # Настройка модели ChatGPT
+    chat_model: Mapped[str] = mapped_column(String(20), default="gpt4o")  # Настройка модели ChatGPT
 
     # Дополнительные поля для интеграции с ChatGPT
     conversation_history: Mapped[str] = mapped_column(String, default='')  # История разговоров пользователя
@@ -33,5 +31,4 @@ class UserData(Base):
 
     def __repr__(self):
         return (f'UserData(user_id={self.user_id!r}, username={self.username!r}, '
-                f'fullname={self.fullname!r}, language={self.language!r}, '
-                f'notifications_enabled={self.notifications_enabled!r}, theme={self.theme!r})')
+                f'fullname={self.fullname!r}, language={self.language!r})')

@@ -154,8 +154,7 @@ class Database:
             if user:
                 settings = {
                     "language": user.language,
-                    "notifications_enabled": user.notifications_enabled,
-                    "theme": user.theme
+                    "chat_model": user.chat_model
                 }
                 logger.debug(f"User settings retrieved (ID: {user_id}): {settings}")
                 return settings
@@ -175,8 +174,28 @@ class Database:
         :param value: Значение настройки.
         :return: True, если настройка установлена успешно, иначе False.
         """
-        allowed_settings = {"language", "notifications_enabled", "theme", "chat_model"}
+        allowed_settings = {"language", "chat_model"}
         if setting not in allowed_settings:
             logger.warning(f"Attempted to set unknown setting: {setting}")
             return False
         return await cls.update_user_data(user_id, **{setting: value})
+
+
+    @classmethod
+    async def get_user_model(cls, user_id: int) -> Optional[str]:
+        """
+        Получение выбранной модели чата для пользователя.
+
+        :param user_id: Уникальный ID пользователя Telegram.
+        :return: Название выбранной модели чата или None, если пользователь не найден.
+        """
+        try:
+            user = await cls.get_user(user_id)
+            if user:
+                logger.debug(f"User model retrieved (ID: {user_id}): {user.chat_model}")
+                return user.chat_model
+            logger.debug(f"Failed to retrieve user model (ID: {user_id}).")
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving user model: {e}")
+            return None
