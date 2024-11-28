@@ -31,6 +31,7 @@ from app.lexicon.bot_lexicon import LEXICON_RU, LEXICON_EN
 
 router = Router()
 
+
 @router.message(Command("start"))
 async def cmd_start(message: Message):
     """
@@ -164,6 +165,18 @@ async def callback_hide(callback: CallbackQuery, state: FSMContext):
 
     await callback.answer()
 
+@router.message(Command("cancel"))
+async def cmd_cancel(message: Message, state: FSMContext):
+    """
+    Обработчик команды "/cancel".
+    Отменяет текущее действие пользователя.
+    """
+    cur_lang = (await Database.get_user_settings(user_id=message.from_user.id))['language']
+    await state.clear()
+
+    await message.answer("Действие отменено" if cur_lang == 'ru' else "Action cancelled", reply_markup=await get_menu_keyboard(lang=cur_lang))
+
+
 @router.callback_query(F.data.startswith("choice_"), StateFilter(FSMModel.choosing_model))
 async def callback_choose_model(callback: CallbackQuery, state: FSMContext):
     """
@@ -296,9 +309,9 @@ async def cmd_chat_start(message: Message, state: FSMContext):
         await state.set_state(FSMModel.waiting_for_message_gpt4o)
 
     if cur_lang == 'ru':
-        prompt = f"Вы сейчас используете: {full_model}\n\nВведите ваше сообщение:"
+        prompt = f"Вы сейчас используете: {full_model}\n\nВведите ваше сообщение:\n\n<i>Чтобы отменить диалог, нажмите /cancel</i>"
     else:
-        prompt = f"You are now using: {full_model}\n\nEnter your message:"
+        prompt = f"You are now using: {full_model}\n\nEnter your message:\n\n<i>In order to quit the dialogue, click /cancel</i>"
 
     await message.answer(prompt, reply_markup=await get_hide_keyboard(lang=cur_lang))
 
@@ -404,3 +417,76 @@ async def fallback_handler(message: Message, state: FSMContext):
     await message.answer(fallback_text)
     logger.error(f"Unexpected state while processing a message from user (ID: {user_id}).")
     await state.clear()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@router.message(F.text.lower().contains('хонер'))
+async def process_some(message: Message):
+    """
+    Обработчик сообщений, содержащих 'хонер'.
+    Отправляет сообщение с приветствием.
+    """
+    await message.answer("<b><i>==ХУАВЕЙ==  :)</i></b>")
