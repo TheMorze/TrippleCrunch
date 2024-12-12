@@ -37,17 +37,21 @@ async def get_choose_model_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
     if lang == 'ru':
         gpt4o_text = "🚀 GPT4o"
         scenary_text = "👾 Сценарный"
+        llama3_text = "🦙 Llama3"
         hide_text = "Скрыть"
     else:
         gpt4o_text = "🚀 GPT4o"
         scenary_text = "👾 Scenary"
+        llama3_text = "🦙 Llama3"
         hide_text = "Hide"
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(text=gpt4o_text, callback_data="choice_gpt4o"),
+                InlineKeyboardButton(text=llama3_text, callback_data="choice_llama3"),
                 InlineKeyboardButton(text=scenary_text, callback_data="choice_scenary"),
+
             ],
             [
                 InlineKeyboardButton(text=hide_text, callback_data="hide")
@@ -81,6 +85,30 @@ async def get_approve_gpt4o_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
     )
     return keyboard
 
+
+async def get_approve_llama3_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
+    """
+    Создание клавиатуры для подтверждения выбора модели Llama3.
+
+    :param lang: Язык пользователя ('ru' или 'en').
+    :return: Объект InlineKeyboardMarkup с кнопками подтверждения.
+    """
+    if lang == 'ru':
+        yes_text = "✅ Да"
+        no_text = "❌ Нет"
+    else:
+        yes_text = "✅ Yes"
+        no_text = "❌ No"
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=yes_text, callback_data="approve_llama3"),
+                InlineKeyboardButton(text=no_text, callback_data="refuse")
+            ]
+        ]
+    )
+    return keyboard
 
 async def get_approve_scenary_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
     """
