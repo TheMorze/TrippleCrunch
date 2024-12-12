@@ -485,7 +485,8 @@ async def process_llama3_message(message: Message, state: FSMContext):
     await Database.set_user_setting(user_id=user_id, setting="token_balance", value=(await Database.get_user_settings(user_id=user_id))['token_balance'] - 150)
     await message.answer(llama_response)
     logger.info(f"Response sent to user (ID: {user_id}): {llama_response}")
-    @router.message(StateFilter(FSMModel.waiting_for_message_scenary))
+    
+@router.message(StateFilter(FSMModel.waiting_for_message_scenary))
 async def process_scenary_message(message: Message, state: FSMContext):
     """
     Обработчик сообщений в состоянии общения с Scenary.
