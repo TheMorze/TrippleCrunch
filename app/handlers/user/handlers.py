@@ -139,18 +139,19 @@ async def change_language(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
 
     await state.set_state(FSMSettings.waiting_for_language)
+    is_admin = settings['is_admin']
 
     if cur_lang == 'ru':
         await Database.set_user_setting(user_id=user_id, setting='language', value='en')
         new_lang = 'en'
         response_text = "Language changed to EN."
-        await callback.message.answer("<b>Your current settings:</b>\n\n", reply_markup=await get_settings_keyboard(lang='en'))
+        await callback.message.answer("<b>Your current settings:</b>\n\n", reply_markup=await get_settings_keyboard(lang='en', is_admin=is_admin))
         await callback.message.answer("Settings have been changed", reply_markup=await get_menu_keyboard(lang='en'))
     else:
         await Database.set_user_setting(user_id=user_id, setting='language', value='ru')
         new_lang = 'ru'
         response_text = "Язык изменен на RU."
-        await callback.message.answer("<b>Ваши текущие настройки:</b>\n\n", reply_markup=await get_settings_keyboard(lang='ru'))
+        await callback.message.answer("<b>Ваши текущие настройки:</b>\n\n", reply_markup=await get_settings_keyboard(lang='ru', is_admin=is_admin))
         await callback.message.answer("Настройки были изменены", reply_markup=await get_menu_keyboard(lang='ru'))
 
     await callback.answer(text=response_text)
@@ -315,11 +316,24 @@ async def cmd_chat_start(message: Message, state: FSMContext):
         cur_lang = 'ru'  # Default language
 
     model = await Database.get_user_model(user_id=user_id)
+    token_balance = settings['token_balance']
 
     if model == "gpt4o":
+        if token_balance < 100:
+            if cur_lang == 'ru':
+                await message.answer(f"У вас недостаточно токенов для использования модели GPT4o. Пополните баланс токенов, чтобы продолжить.")
+            else:
+                await message.answer(f"You don't have enough tokens to use model GPT4o. Please top up your token balance to continue.")
+            return
         full_model = "GPT4o"
         await state.set_state(FSMModel.waiting_for_message_gpt4o)
     elif model == "llama3":
+        if token_balance < 150:
+            if cur_lang == 'ru':
+                await message.answer(f"У вас недостаточно токенов для использования модели LLama3. Пополните баланс токенов, чтобы продолжить.")
+            else:
+                await message.answer(f"You don't have enough tokens to use model LLama3. Please top up your token balance to continue.")
+            return
         full_model = "Llama3"
         await state.set_state(FSMModel.waiting_for_message_llama3)
     elif model == "scenary":
@@ -344,6 +358,7 @@ async def process_gpt4o_message(message: Message, state: FSMContext):
     """
     Обработчик сообщений в состоянии общения с GPT4o.
     """
+
     user_message = message.text
     user_id = message.from_user.id
     settings = await Database.get_user_settings(user_id=user_id)
@@ -352,11 +367,22 @@ async def process_gpt4o_message(message: Message, state: FSMContext):
     else:
         cur_lang = 'ru'  # Default language
 
+
+    token_balance = settings['token_balance']
+
+    if token_balance < 100:
+        if cur_lang == 'ru':
+            await message.answer(f"У вас недостаточно токенов для использования модели GPT4o. Пополните баланс токенов, чтобы продолжить.")
+        else:
+            await message.answer(f"You don't have enough tokens to use model GPT4o. Please top up your token balance to continue.")
+        return
+
     logger.info(f"Message received from user (ID: {user_id}): {user_message}")
 
     await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
 
     gpt_response = await get_gpt_response(user_message)
+    await Database.set_user_setting(user_id=user_id, setting="token_balance", value=(await Database.get_user_settings(user_id=user_id))['token_balance'] - 100)
 
     await message.answer(gpt_response)
     logger.info(f"Response sent to user (ID: {user_id}): {gpt_response}")
@@ -375,13 +401,24 @@ async def process_llama3_message(message: Message, state: FSMContext):
     else:
         cur_lang = 'ru'  # Default language
 
+    token_balance = settings['token_balance']
+    if token_balance < 150:
+        if cur_lang == 'ru':
+            await message.answer(f"У вас недостаточно токенов для использования модели LLama3. Пополните баланс токенов, чтобы продолжить.")
+        else:
+            await message.answer(f"You don't have enough tokens to use model LLama3. Please top up your token balance to continue.")
+        return
+
     logger.info(f"Message received from user (ID: {user_id}): {user_message}")
 
     # Здесь можно добавить интеграцию с Llama API
     # Пример:
     # llama_response = await get_llama_response(user_message)
+    await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
+
     llama_response = await get_llama_response(user_message)
 
+    await Database.set_user_setting(user_id=user_id, setting="token_balance", value=(await Database.get_user_settings(user_id=user_id))['token_balance'] - 150)
     await message.answer(llama_response)
     logger.info(f"Response sent to user (ID: {user_id}): {llama_response}")
 
@@ -417,9 +454,9 @@ async def process_scenary_message(message: Message, state: FSMContext):
             if keyword.lower() in message.text.lower():
                 response = reply
                 logger.info(f"Keyword '{keyword}' matched. Sending reply: {reply}")
-                break  # Выход из внутреннего цикла
+                break
         if response:
-            break  # Выход из внешнего цикла, если найден ответ
+            break
     else:
         response = "Я не знаю, как на это отвечать :("
 
@@ -433,13 +470,8 @@ async def process_scenary_message(message: Message, state: FSMContext):
 
     logger.info(f"Message received from user (ID: {user_id}): {user_message}")
 
-    # Здесь можно добавить интеграцию с Scenary API или другим сервисом
-    # Пример:
-    # scenary_response = await get_scenary_response(user_message)
-    scenary_response = "This is a sample response from Scenary." if cur_lang == 'en' else "Это пример ответа от Scenary."
-
     await message.answer(response)
-    logger.info(f"Response sent to user (ID: {user_id}): {scenary_response}")
+    logger.info(f"Response sent to user (ID: {user_id}): {response}")
 
 
 @router.message(StateFilter(FSMModel.scenary_processing_message))
@@ -463,7 +495,18 @@ async def fallback_handler(message: Message, state: FSMContext):
     logger.error(f"Unexpected state while processing a message from user (ID: {user_id}).")
     await state.clear()
 
+@router.message(F.text == '🆘 Помощь')
+@router.message(F.text == '🆘 Help')
+async def cmd_help(message: Message):
+    """
+    Обработчик команды "🆘 Помощь" и команды "/help".
+    Отправляет сообщение с помощью.
+    """
 
+    await message.answer("<b><i>==ПОМОЩЬ==</i></b>\n\n" \
+                         "🗨️ <b><i>Запустить чат</i></b> — <i>Начать общение с выбранной моделью нейросети</i>\n" \
+                         "🤖 <b><i>Изменить модель</i></b> — <i>выбрать модель из существующих</i>\n" \
+                         "⚙️ <b><i>Настройки</i></b> — <i>Изменить язык</i> или <i>Войти в админ-панель (при наличии прав)</i>\n")
 
 
 

@@ -29,6 +29,8 @@ class UserData(Base):
 
     gpt4o_access: Mapped[bool] = mapped_column(Boolean, default=True)  # Доступ к GPT4o
     scenary_access: Mapped[bool] = mapped_column(Boolean, default=True) # Доступ к сценарному
+    llama_access: Mapped[bool] = mapped_column(Boolean, default=True)  # Доступ к Llama
+
     banned: Mapped[bool] = mapped_column(Boolean, default=False)  # Забанен ли пользователь
 
     # Дополнительные поля для интеграции с ChatGPT

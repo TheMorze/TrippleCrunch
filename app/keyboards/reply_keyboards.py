@@ -14,17 +14,18 @@ async def get_menu_keyboard(one_time: bool = False, lang: str = 'ru') -> ReplyKe
         start_chat_text = '🗨️ Запустить чат'
         change_model_text = '🤖 Изменить модель'
         settings_text = '⚙️ Настройки'
-        flag = '🇷🇺'
+        help_text = '🆘 Помощь'
     else:
         start_chat_text = '🗨️ Start Chat'
         change_model_text = '🤖 Change Model'
         settings_text = '⚙️ Settings'
-        flag = '🇬🇧'
+        help_text = '🆘 Help'
 
     # Создание клавиатуры с динамическими текстами кнопок
     keyboard = [
         [KeyboardButton(text=start_chat_text)],
         [KeyboardButton(text=change_model_text), KeyboardButton(text=settings_text)],
+        [KeyboardButton(text=help_text)],
     ]
 
     return ReplyKeyboardMarkup(

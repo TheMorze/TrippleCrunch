@@ -136,11 +136,13 @@ async def callback_change_user_model(callback: CallbackQuery, state: FSMContext)
         await callback.message.answer(f"Изменить доступ к модели для пользователя {data.fullname} (@{data.username}):",
                                       reply_markup=await get_user_model_access_keyboard(gpt=data.gpt4o_access,
                                                                                         scenary=data.scenary_access,
+                                                                                        llama=data.llama_access,
                                                                                         lang='ru'))
     else:
         await callback.message.answer(f"Choose the chat model for the user {data.fullname} (@{data.username}):",
                                       reply_markup=await get_user_model_access_keyboard(gpt=data.gpt4o_access,
                                                                                         scenary=data.scenary_access,
+                                                                                        llama=data.llama_access,
                                                                                         lang='en'))
 
     await callback.answer()
@@ -155,8 +157,10 @@ async def callback_access(callback: CallbackQuery, state: FSMContext):
     data = (await state.get_data())['user']
     if mdl == 'gpt4o':
         data.gpt4o_access = edit = not data.gpt4o_access
-    else:
+    elif mdl == 'scenary':
         data.scenary_access = edit = not data.scenary_access
+    else:
+        data.llama_access = edit = not data.llama_access
 
     await state.update_data(data={'user': data})
     await Database.set_user_setting(user_id=data.user_id, setting=f"{mdl}_access", value=edit)

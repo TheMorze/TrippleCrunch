@@ -46,7 +46,7 @@ async def get_settings_keyboard(lang: str = 'ru', is_admin = False) -> InlineKey
     return keyboard
 
 
-async def get_choose_model_keyboard(gpt4o=True, scenary=True, lang: str = 'ru') -> InlineKeyboardMarkup:
+async def get_choose_model_keyboard(gpt4o=True, scenary=True, llama=True, lang: str = 'ru') -> InlineKeyboardMarkup:
     """
     Создание клавиатуры для выбора модели.
 
@@ -56,7 +56,6 @@ async def get_choose_model_keyboard(gpt4o=True, scenary=True, lang: str = 'ru') 
     if lang == 'ru':
         gpt4o_text = "🚀 GPT4o"
         scenary_text = "👾 Сценарная"
-        scenary_text = "👾 Сценарный"
         llama3_text = "🦙 Llama3"
         hide_text = "Скрыть"
     else:
@@ -70,16 +69,13 @@ async def get_choose_model_keyboard(gpt4o=True, scenary=True, lang: str = 'ru') 
         models.append(InlineKeyboardButton(text=gpt4o_text, callback_data="choice_gpt4o"))
     if scenary:
         models.append(InlineKeyboardButton(text=scenary_text, callback_data="choice_scenary"))
+    if llama:
+        models.append(InlineKeyboardButton(text=llama3_text, callback_data="choice_llama3"))
+
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             models,
-            [
-                InlineKeyboardButton(text=gpt4o_text, callback_data="choice_gpt4o"),
-                InlineKeyboardButton(text=llama3_text, callback_data="choice_llama3"),
-                InlineKeyboardButton(text=scenary_text, callback_data="choice_scenary"),
-
-            ],
             [
                 InlineKeyboardButton(text=hide_text, callback_data="hide")
             ]
