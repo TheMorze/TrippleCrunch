@@ -31,7 +31,8 @@ async def get_llama_response(prompt):
     )
 
     return response.choices[0].message.content
-    
+
+
 async def get_scenary_response(prompt):
     client = AsyncClient()
     response = await client.chat.completions.create(
