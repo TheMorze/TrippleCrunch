@@ -32,12 +32,3 @@ async def get_llama_response(prompt):
 
     return response.choices[0].message.content
 
-async def get_scenary_response(prompt):
-
-    client = AsyncClient()
-    response = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": AI_LEXICON['PREDEFINED_PROMPT'] + prompt}],
-    )
-
-    return response.choices[0].message.content
