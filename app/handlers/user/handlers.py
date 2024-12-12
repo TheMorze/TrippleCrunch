@@ -485,6 +485,64 @@ async def process_llama3_message(message: Message, state: FSMContext):
     await Database.set_user_setting(user_id=user_id, setting="token_balance", value=(await Database.get_user_settings(user_id=user_id))['token_balance'] - 150)
     await message.answer(llama_response)
     logger.info(f"Response sent to user (ID: {user_id}): {llama_response}")
+    @router.message(StateFilter(FSMModel.waiting_for_message_scenary))
+async def process_scenary_message(message: Message, state: FSMContext):
+    """
+    Обработчик сообщений в состоянии общения с Scenary.
+    """
+    user_message = message.text
+    user_id = message.from_user.id
+    settings = await Database.get_user_settings(user_id=user_id)
+    if settings:
+        cur_lang = settings.get('language', 'ru')
+    else:
+        cur_lang = 'ru'  # Default language
+
+    token_balance = settings['token_balance']
+    if token_balance < 50:
+        if cur_lang == 'ru':
+            await message.answer(f"У вас недостаточно токенов для использования модели Scenary.\n\n<b>Пополните баланс токенов, чтобы продолжить — для этого напишите @TheMorz3.</b>"
+                                 f"\n\n <i>/price — узнать прайс-лист</i>")
+        else:
+            await message.answer(f"You don't have enough tokens to use model Scenary. Please top up your token balance to continue. DM @TheMorze in order to do it.")
+        return
+
+    logger.info(f"Message received from user (ID: {user_id}): {user_message}")
+
+    # Здесь можно добавить интеграцию с Llama API
+    # Пример:
+    # llama_response = await get_llama_response(user_message)
+    await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
+
+    scenary_response = await get_scenary_response(user_message)
+
+    await Database.set_user_setting(user_id=user_id, setting="token_balance", value=(await Database.get_user_settings(user_id=user_id))['token_balance'] - 50)
+    await message.answer(scenary_response)
+    logger.info(f"Response sent to user (ID: {user_id}): {scenary_response}")
+
+
+
+@router.message(StateFilter(FSMModel.scenary_processing_message))
+async def fallback_handler(message: Message, state: FSMContext):
+    """
+    Обработчик для непредвиденных состояний.
+    """
+    user_id = message.from_user.id
+    settings = await Database.get_user_settings(user_id=user_id)
+    if settings:
+        cur_lang = settings.get('language', 'ru')
+    else:
+        cur_lang = 'ru'  # Default language
+
+    if cur_lang == 'ru':
+        fallback_text = "Я не знаю, как на это отвечать :("
+    else:
+        fallback_text = "I don't know how to respond to that :("
+
+    await message.answer(fallback_text)
+    logger.error(f"Unexpected state while processing a message from user (ID: {user_id}).")
+    await state.clear()
+
 @router.message(F.text == '🆘 Помощь')
 @router.message(F.text == '🆘 Help')
 async def cmd_help(message: Message):
