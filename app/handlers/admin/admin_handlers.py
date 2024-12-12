@@ -76,12 +76,13 @@ async def callback_find_user(callback: CallbackQuery, state: FSMContext):
 
     await callback.answer()
 
-@router.message(StateFilter(FSMAdmin.searching_for_user))
+@router.message(F.text.isdigit(), StateFilter(FSMAdmin.searching_for_user))
 async def process_user_search(message: Message, state: FSMContext):
     """
     Обработчик ввода ID пользователя для поиска.
     """
     user_id = int(message.text.strip())
+
     user_settings = await Database.get_user_settings(user_id)
     user_data = await Database.get_user(user_id)
 
@@ -115,7 +116,6 @@ async def process_user_search(message: Message, state: FSMContext):
         else:
             await message.answer("User not found.")
 
-        await state.set_state(FSMAdmin.entered_admin_panel)
 
 
 @router.callback_query(F.data == "change_user_model", StateFilter(FSMAdmin.user_editing))
@@ -230,6 +230,7 @@ async def process_user_token_balance(message: Message, state: FSMContext):
     await state.update_data(data={"user": data})
 
 @router.message(StateFilter(FSMAdmin.changing_user_token_balance))
+@router.message(StateFilter(FSMAdmin.searching_for_user))
 async def process_user_token_balance_invalid(message: Message, state: FSMContext):
     """
     Обработчик неверного ввода баланса токенов для пользователя.

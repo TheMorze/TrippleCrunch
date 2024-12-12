@@ -214,14 +214,12 @@ async def get_admin_user_editing_keyboard(lang: str = 'ru') -> InlineKeyboardMar
     :return: Объект InlineKeyboardMarkup с кнопками редактирования пользователя.
     """
     if lang == 'ru':
-        change_model = "Изменить настройки доступа к моделям"
-        change_token_balance = "Изменить баланс токенов"
-        give_ban = "Выдать бан"
+        change_model = "🤌 Изменить настройки доступа к моделям"
+        change_token_balance = "🤑 Изменить баланс токенов"
         hide_text = "Скрыть"
     else:
-        change_model = "Change access setting to the models"
-        change_token_balance = "Change token balance"
-        give_ban = "Give ban"
+        change_model = "🤌 Change access setting to the models"
+        change_token_balance = "🤑 Change token balance"
         hide_text = "Hide"
 
     keyboard = InlineKeyboardMarkup(
@@ -233,11 +231,6 @@ async def get_admin_user_editing_keyboard(lang: str = 'ru') -> InlineKeyboardMar
             [
                 InlineKeyboardButton(text=change_token_balance, callback_data="change_user_token_balance")
             ],
-
-            [
-                InlineKeyboardButton(text=give_ban, callback_data="give_ban")
-            ],
-
             [
                 InlineKeyboardButton(text=hide_text, callback_data="hide")
             ]
@@ -245,7 +238,7 @@ async def get_admin_user_editing_keyboard(lang: str = 'ru') -> InlineKeyboardMar
     )
     return keyboard
 
-async def get_user_model_access_keyboard(gpt = False, scenary = False, lang: str = 'ru') -> InlineKeyboardMarkup:
+async def get_user_model_access_keyboard(gpt = False, scenary = False, llama = False, lang: str = 'ru') -> InlineKeyboardMarkup:
     """
     Создание клавиатуры для выбора модели чата.
 
@@ -263,6 +256,11 @@ async def get_user_model_access_keyboard(gpt = False, scenary = False, lang: str
         else:
             scenary_text = "❌ Сценарный"
 
+        if llama:
+            llama3_text = "✅ Llama3"
+        else:
+            llama3_text = "❌ Llama3"
+
         hide_text = "Скрыть"
     else:
         if gpt:
@@ -275,6 +273,11 @@ async def get_user_model_access_keyboard(gpt = False, scenary = False, lang: str
         else:
             scenary_text = "❌ Scenary"
 
+        if llama:
+            llama3_text = "✅ Llama3"
+        else:
+            llama3_text = "❌ Llama3"
+
         hide_text = "Hide"
 
     keyboard = InlineKeyboardMarkup(
@@ -282,9 +285,20 @@ async def get_user_model_access_keyboard(gpt = False, scenary = False, lang: str
             [
                 InlineKeyboardButton(text=gpt4o_text, callback_data="access_gpt4o"),
                 InlineKeyboardButton(text=scenary_text, callback_data="access_scenary"),
+                InlineKeyboardButton(text=llama3_text, callback_data="access_llama")
             ],
             [
                 InlineKeyboardButton(text=hide_text, callback_data="hide")
+            ]
+        ]
+    )
+    return keyboard
+
+async def get_approve_keyboard():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Подтвердить | Approve", callback_data="approve")
             ]
         ]
     )

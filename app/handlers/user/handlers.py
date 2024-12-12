@@ -9,7 +9,7 @@ from aiogram.fsm.context import FSMContext
 from loguru import logger
 
 from app.database.requests import Database
-from app.FSM.fsm import FSMSettings, FSMModel
+from app.FSM.fsm import FSMSettings, FSMModel, FSMUser
 from aiogram.fsm.state import default_state
 from app.keyboards.inline_keyboards import (
     get_settings_keyboard,
@@ -17,24 +17,26 @@ from app.keyboards.inline_keyboards import (
     get_choose_model_keyboard,
     get_approve_gpt4o_keyboard,
     get_approve_llama3_keyboard,
-    get_approve_scenary_keyboard
+    get_approve_scenary_keyboard,
+    get_approve_keyboard
 )
 
 from app.keyboards.reply_keyboards import (
     get_menu_keyboard
 )
 
-from app.service.helpers import get_gpt_response, get_llama_response
+from app.service.helpers import get_gpt_response, get_llama_response, get_scenary_response
 
 from aiogram.types.reply_keyboard_markup import ReplyKeyboardMarkup
 
 from app.lexicon.bot_lexicon import LEXICON_RU, LEXICON_EN
 
+from aiogram.types import FSInputFile
+
 router = Router()
 
-
 @router.message(Command("start"))
-async def cmd_start(message: Message):
+async def cmd_start(message: Message, state: FSMContext):
     """
     Обработчик команды /start.
     Регистрирует пользователя в базе данных и приветствует его.
@@ -44,12 +46,6 @@ async def cmd_start(message: Message):
     fullname = message.from_user.full_name or ""
 
     user, created = await Database.add_user(user_id=user_id, username=username, fullname=fullname)
-    if not created:
-        welcome_text_ru = f"Добро пожаловать, <b>{fullname}</b>!"
-        welcome_text_en = f"Welcome back, <b>{fullname}</b>!"
-    else:
-        welcome_text_ru = f"С возвращением, <b>{fullname}</b>!"
-        welcome_text_en = f"Welcome, <b>{fullname}</b>!"
 
     settings = await Database.get_user_settings(user_id)
 
@@ -58,12 +54,67 @@ async def cmd_start(message: Message):
     else:
         cur_lang = 'ru'  # Default language
 
+    if not created:
+        await state.set_state(FSMUser.approving_agreement)
+        welcome_text_ru = f"Добро пожаловать, <b>{fullname}</b>!\n\n" \
+                          f"Перед использованием бота вам следует ознакомиться с политикой конфиденциальности и подтвердить принятие пользовательского соглашения ☝️"
+        welcome_text_en = f"Welcome, <b>{fullname}</b>!\n\n" \
+                          f"Before using the bot, please familiarize yourself with the privacy policy and accept the user agreement ☝️"
+
+        # Путь к локальному PDF-файлу
+        pdf_path = "app\database\Пользовательское соглашение.pdf"
+
+        ## Используем FSInputFile для отправки локального файла
+        pdf_file = FSInputFile(pdf_path)
+
+        await message.answer_document(pdf_file, caption="Пользовательское соглашние 📄")
+        if cur_lang == 'ru':
+            await message.answer(text=welcome_text_ru, reply_markup=await get_approve_keyboard())
+        else:
+            await message.answer(text=welcome_text_en, reply_markup=await get_approve_keyboard())
+
+        return
+
+    else:
+        welcome_text_ru = f"С возвращением, <b>{fullname}</b>!"
+        welcome_text_en = f"Welcome, <b>{fullname}</b>!"
+
     if cur_lang == 'ru':
         await message.answer(LEXICON_RU['start'].format(hello=welcome_text_ru), reply_markup=await get_menu_keyboard(lang='ru'))
     else:
         await message.answer(LEXICON_EN['start'].format(hello=welcome_text_en), reply_markup=await get_menu_keyboard(lang='en'))
 
     logger.info(f"User {username} (ID: {user_id}) started the bot.")
+
+
+@router.callback_query(F.data == 'approve', StateFilter(FSMUser.approving_agreement))
+async def callback_approve(callback: CallbackQuery, state: FSMContext):
+    """
+    Обработчик согласия пользователя с политикой конфиденциальности.
+    """
+    user_id = callback.from_user.id
+    username = callback.from_user.username or ""
+    fullname = callback.from_user.full_name or ""
+
+    settings = await Database.get_user_settings(user_id)
+
+    if settings:
+        cur_lang = settings.get('language', 'ru')
+    else:
+        cur_lang = 'ru'  # Default language
+
+    await state.set_state(default_state)
+
+    welcome_text_ru = f"С возвращением, <b>{fullname}</b>!"
+    welcome_text_en = f"Welcome, <b>{fullname}</b>!"
+
+    await callback.message.delete()
+    if cur_lang == 'ru':
+        await callback.message.answer(LEXICON_RU['start'].format(hello=welcome_text_ru), reply_markup=await get_menu_keyboard(lang='ru'))
+    else:
+        await callback.message.answer(LEXICON_EN['start'].format(hello=welcome_text_en), reply_markup=await get_menu_keyboard(lang='en'))
+
+    await callback.answer()
 
 @router.message(F.text == "🤖 Изменить модель")
 @router.message(F.text == "🤖 Change Model")
@@ -84,13 +135,14 @@ async def change_model(message: Message, state: FSMContext):
     settings = await Database.get_user_settings(user_id=user_id)
     gpt4o = settings['gpt4o_access']
     scenary = settings['scenary_access']
+    llama = settings['llama_access']
 
     if cur_lang == 'ru':
-        text = "Выберите модель для чата.\n\nВам доступны следующие модели:" + (" GPT4o" if gpt4o else '') + (" Сценарная" if scenary else '')
+        text = "Выберите модель для чата.\n\nВам доступны следующие модели:"
     else:
-        text = "Choose a chat model.\n\nYou have access to the folowing models:" + (" GPT4o" if gpt4o else '') + (" Scenary" if scenary else '')
+        text = "Choose a chat model.\n\nYou have access to the folowing models:"
 
-    await message.answer(text, reply_markup=await get_choose_model_keyboard(gpt4o=gpt4o, scenary=scenary, lang=cur_lang))
+    await message.answer(text, reply_markup=await get_choose_model_keyboard(gpt4o=gpt4o, scenary=scenary, llama=llama, lang=cur_lang))
     logger.info(f"User (ID: {user_id}) is choosing a model with ChatGPT.")
 
 @router.message(F.text == "⚙️ Настройки")
@@ -139,7 +191,7 @@ async def change_language(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
 
     await state.set_state(FSMSettings.waiting_for_language)
-    is_admin = settings['is_admin']
+    is_admin = (await Database.get_user(user_id=user_id)).is_admin
 
     if cur_lang == 'ru':
         await Database.set_user_setting(user_id=user_id, setting='language', value='en')
@@ -321,22 +373,31 @@ async def cmd_chat_start(message: Message, state: FSMContext):
     if model == "gpt4o":
         if token_balance < 100:
             if cur_lang == 'ru':
-                await message.answer(f"У вас недостаточно токенов для использования модели GPT4o. Пополните баланс токенов, чтобы продолжить.")
+                await message.answer(f"У вас недостаточно токенов для использования модели GPT4o.\n\n<b>Пополните баланс токенов, чтобы продолжить — для этого напишите @TheMorz3.</b>" \
+                                f"\n\n <i>/price — узнать прайс-лист</i>")
             else:
-                await message.answer(f"You don't have enough tokens to use model GPT4o. Please top up your token balance to continue.")
+                await message.answer(f"You don't have enough tokens to use model GPT4o. Please top up your token balance to continue. DM @TheMorze in order to do it.")
             return
         full_model = "GPT4o"
         await state.set_state(FSMModel.waiting_for_message_gpt4o)
     elif model == "llama3":
         if token_balance < 150:
             if cur_lang == 'ru':
-                await message.answer(f"У вас недостаточно токенов для использования модели LLama3. Пополните баланс токенов, чтобы продолжить.")
+                await message.answer(f"У вас недостаточно токенов для использования модели LLama3.\n\n<b>Пополните баланс токенов, чтобы продолжить — для этого напишите @TheMorz3.</b>" \
+                                f"\n\n <i>/price — узнать прайс-лист</i>")
             else:
-                await message.answer(f"You don't have enough tokens to use model LLama3. Please top up your token balance to continue.")
+                await message.answer(f"You don't have enough tokens to use model LLama3. Please top up your token balance to continue. DM @TheMorze in order to do it.")
             return
         full_model = "Llama3"
         await state.set_state(FSMModel.waiting_for_message_llama3)
     elif model == "scenary":
+        if token_balance < 150:
+            if cur_lang == 'ru':
+                await message.answer(f"У вас недостаточно токенов для использования модели LLama3.\n\n<b>Пополните баланс токенов, чтобы продолжить — для этого напишите @TheMorz3.</b>" \
+                                f"\n\n <i>/price — узнать прайс-лист</i>")
+            else:
+                await message.answer(f"You don't have enough tokens to use model LLama3. Please top up your token balance to continue. DM @TheMorze in order to do it.")
+            return
         full_model = "Scenary"
         await state.set_state(FSMModel.waiting_for_message_scenary)
     else:
@@ -372,9 +433,10 @@ async def process_gpt4o_message(message: Message, state: FSMContext):
 
     if token_balance < 100:
         if cur_lang == 'ru':
-            await message.answer(f"У вас недостаточно токенов для использования модели GPT4o. Пополните баланс токенов, чтобы продолжить.")
+            await message.answer(f"У вас недостаточно токенов для использования модели GPT4o.\n\n<b>Пополните баланс токенов, чтобы продолжить — для этого напишите @TheMorz3.</b>" \
+                                f"\n\n <i>/price — узнать прайс-лист</i>")
         else:
-            await message.answer(f"You don't have enough tokens to use model GPT4o. Please top up your token balance to continue.")
+            await message.answer(f"You don't have enough tokens to use model GPT4o. Please top up your token balance to continue. DM @TheMorze in order to do it.")
         return
 
     logger.info(f"Message received from user (ID: {user_id}): {user_message}")
@@ -382,6 +444,7 @@ async def process_gpt4o_message(message: Message, state: FSMContext):
     await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
 
     gpt_response = await get_gpt_response(user_message)
+
     await Database.set_user_setting(user_id=user_id, setting="token_balance", value=(await Database.get_user_settings(user_id=user_id))['token_balance'] - 100)
 
     await message.answer(gpt_response)
@@ -404,9 +467,10 @@ async def process_llama3_message(message: Message, state: FSMContext):
     token_balance = settings['token_balance']
     if token_balance < 150:
         if cur_lang == 'ru':
-            await message.answer(f"У вас недостаточно токенов для использования модели LLama3. Пополните баланс токенов, чтобы продолжить.")
+            await message.answer(f"У вас недостаточно токенов для использования модели LLama3.\n\n<b>Пополните баланс токенов, чтобы продолжить — для этого напишите @TheMorz3.</b>" \
+                                f"\n\n <i>/price — узнать прайс-лист</i>")
         else:
-            await message.answer(f"You don't have enough tokens to use model LLama3. Please top up your token balance to continue.")
+            await message.answer(f"You don't have enough tokens to use model LLama3. Please top up your token balance to continue. DM @TheMorze in order to do it.")
         return
 
     logger.info(f"Message received from user (ID: {user_id}): {user_message}")
@@ -421,96 +485,6 @@ async def process_llama3_message(message: Message, state: FSMContext):
     await Database.set_user_setting(user_id=user_id, setting="token_balance", value=(await Database.get_user_settings(user_id=user_id))['token_balance'] - 150)
     await message.answer(llama_response)
     logger.info(f"Response sent to user (ID: {user_id}): {llama_response}")
-
-
-@router.message(StateFilter(FSMModel.waiting_for_message_scenary))
-async def process_scenary_message(message: Message, state: FSMContext):
-    """
-    Обработчик сообщений в состоянии общения с Scenary.
-    """
-
-    # Загрузка JSON-файла с ответами при инициализации бота
-    with open('app/lexicon/replies.json', 'r', encoding='utf-8') as f:
-        RESPONSES = json.load(f)
-
-    # Предобработка ключевых слов для ускорения поиска
-    # Создадим список кортежей (список ответов с их ключевыми словами)
-    # Это позволит сохранять порядок при проверке
-    RESPONSE_LIST = []
-    for response_key, response_value in RESPONSES.items():
-        keywords = [kw.lower() for kw in response_value.get('keywords', [])]
-        reply = response_value.get('reply', '')
-        RESPONSE_LIST.append((keywords, reply))
-
-    response = None
-
-    # Если поддерживаются разные языки, можно добавить условие
-    # Например, если RESPONSES разделены по языкам
-    # В данном случае предполагается, что JSON на русском
-
-    # Поиск соответствующего ответа по ключевым словам
-    for keywords, reply in RESPONSE_LIST:
-        for keyword in keywords:
-            if keyword.lower() in message.text.lower():
-                response = reply
-                logger.info(f"Keyword '{keyword}' matched. Sending reply: {reply}")
-                break
-        if response:
-            break
-    else:
-        response = "Я не знаю, как на это отвечать :("
-
-    user_message = message.text
-    user_id = message.from_user.id
-    settings = await Database.get_user_settings(user_id=user_id)
-    if settings:
-        cur_lang = settings.get('language', 'ru')
-    else:
-        cur_lang = 'ru'  # Default language
-
-    logger.info(f"Message received from user (ID: {user_id}): {user_message}")
-
-    await message.answer(response)
-    logger.info(f"Response sent to user (ID: {user_id}): {response}")
-
-
-@router.message(StateFilter(FSMModel.scenary_processing_message))
-async def fallback_handler(message: Message, state: FSMContext):
-    """
-    Обработчик для непредвиденных состояний.
-    """
-    user_id = message.from_user.id
-    settings = await Database.get_user_settings(user_id=user_id)
-    if settings:
-        cur_lang = settings.get('language', 'ru')
-    else:
-        cur_lang = 'ru'  # Default language
-
-    if cur_lang == 'ru':
-        fallback_text = "Я не знаю, как на это отвечать :("
-    else:
-        fallback_text = "I don't know how to respond to that :("
-
-    await message.answer(fallback_text)
-    logger.error(f"Unexpected state while processing a message from user (ID: {user_id}).")
-    await state.clear()
-
-@router.message(F.text == '🆘 Помощь')
-@router.message(F.text == '🆘 Help')
-async def cmd_help(message: Message):
-    """
-    Обработчик команды "🆘 Помощь" и команды "/help".
-    Отправляет сообщение с помощью.
-    """
-
-    await message.answer("<b><i>==ПОМОЩЬ==</i></b>\n\n" \
-                         "🗨️ <b><i>Запустить чат</i></b> — <i>Начать общение с выбранной моделью нейросети</i>\n" \
-                         "🤖 <b><i>Изменить модель</i></b> — <i>выбрать модель из существующих</i>\n" \
-                         "⚙️ <b><i>Настройки</i></b> — <i>Изменить язык</i> или <i>Войти в админ-панель (при наличии прав)</i>\n")
-
-
-
-
 
 
 

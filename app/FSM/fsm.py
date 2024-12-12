@@ -1,5 +1,11 @@
 from aiogram.fsm.state import State, StatesGroup
 
+class FSMUser(StatesGroup):
+    """
+    Состояния для управления пользователями.
+    """
+    approving_agreement = State()  # Ожидание согласия на пользовательское соглашение
+
 class FSMSettings(StatesGroup):
     """
     Состояния для управления настройками пользователя.
