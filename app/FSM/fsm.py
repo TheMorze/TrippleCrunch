@@ -21,3 +21,13 @@ class FSMModel(StatesGroup):
     scenary_processing_message = State()  # Обработка сообщения
 
     sending_response = State()      # Отправка ответа пользователю
+
+class FSMAdmin(StatesGroup):
+    """
+    Состояния для взаимодействия с админ-панелью.
+    """
+    entered_admin_panel = State()  # Вход в админ-панель
+    searching_for_user = State()      # Поиск пользователей
+    user_editing = State()            # Редактирование пользователя
+    changing_user_model = State()
+    changing_user_token_balance = State()

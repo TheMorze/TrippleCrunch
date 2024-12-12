@@ -6,7 +6,7 @@ LEXICON_RU = {
              '— используй <b>«сценарный»</b> режим, чтобы получить ответы на узкоспециализированные вопросы</i>\n\n'
              'Готов приступить к работе? 🤔',
     'gpt4o_choice': '<b>Модель <i>GPT4o</i></b>\nЭто крутая и дорогая модель!\n\nВы уверены, что хотите её выбрать?',
-    'scenary_choice': '<b>Режим <i>«сценарный»</i></b>\nПоможет ответить на вопросы про МИСИС! Вы уверены, что хотите её выбрать?\n\n(даня пж напиши его к этому времени)'}
+    'scenary_choice': '<b>Режим <i>«сценарный»</i></b>\nПоможет ответить на вопросы про МИСИС! Вы уверены, что хотите её выбрать?\n\n'}
 
 LEXICON_EN = {
     'start': (
@@ -18,5 +18,5 @@ LEXICON_EN = {
         'Ready to get started? 🤔'
     ),
     'gpt4o_choice': "<b><i>GPT4o</i> model</b>\nIt's a cool and expensive model!\n\nAre you sure you want to select it?",
-    'scenary_choice': "<b><i>Scenary</i> mode</b>\nIt will help answer questions about MISIS\n\nAre you sure you want to select it?\n(Daniel write this one in time pls)",
+    'scenary_choice': "<b><i>Scenary</i> mode</b>\nIt will help answer questions about MISIS\n\nAre you sure you want to select it?\n",
 }

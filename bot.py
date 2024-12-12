@@ -6,8 +6,8 @@ from loguru import logger
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 
-from app.handlers.admin import a_commands, a_messages, a_callbacks
 from app.handlers.user import handlers
+from app.handlers.admin import admin_handlers
 
 from config import load_config
 from app.database.requests import Database
@@ -30,9 +30,7 @@ async def main() -> None:
 
     # Подключаем хэндлеры админки
     dp.include_routers(
-        a_commands.router,
-        a_messages.router,
-        a_callbacks.router
+        admin_handlers.router
     )
 
     # Подключаем хэндлеры пользователей
@@ -47,4 +45,3 @@ async def main() -> None:
 
 if __name__ == '__main__':
     asyncio.run(main())
-

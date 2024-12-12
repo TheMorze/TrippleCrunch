@@ -51,6 +51,7 @@ async def cmd_start(message: Message):
         welcome_text_en = f"Welcome, <b>{fullname}</b>!"
 
     settings = await Database.get_user_settings(user_id)
+
     if settings:
         cur_lang = settings.get('language', 'ru')
     else:
@@ -79,12 +80,16 @@ async def change_model(message: Message, state: FSMContext):
 
     await state.set_state(FSMModel.choosing_model)
 
-    if cur_lang == 'ru':
-        prompt = "Выберите модель для чата:"
-    else:
-        prompt = "Choose a chat model:"
+    settings = await Database.get_user_settings(user_id=user_id)
+    gpt4o = settings['gpt4o_access']
+    scenary = settings['scenary_access']
 
-    await message.answer(prompt, reply_markup=await get_choose_model_keyboard(lang=cur_lang))
+    if cur_lang == 'ru':
+        text = "Выберите модель для чата.\n\nВам доступны следующие модели:" + (" GPT4o" if gpt4o else '') + (" Сценарная" if scenary else '')
+    else:
+        text = "Choose a chat model.\n\nYou have access to the folowing models:" + (" GPT4o" if gpt4o else '') + (" Scenary" if scenary else '')
+
+    await message.answer(text, reply_markup=await get_choose_model_keyboard(gpt4o=gpt4o, scenary=scenary, lang=cur_lang))
     logger.info(f"User (ID: {user_id}) is choosing a model with ChatGPT.")
 
 @router.message(F.text == "⚙️ Настройки")
@@ -111,7 +116,9 @@ async def cmd_settings(message: Message, state: FSMContext):
     else:
         settings_text = "<b>Your current settings:</b>\n\n"
 
-    keyboard = await get_settings_keyboard(lang=cur_lang)
+    is_admin = (await Database.get_user(user_id=user_id)).is_admin
+
+    keyboard = await get_settings_keyboard(lang=cur_lang, is_admin=is_admin)
 
     await message.answer(settings_text, reply_markup=keyboard)
     logger.info(f"User (ID: {user_id}) requested settings.")
@@ -332,9 +339,8 @@ async def process_gpt4o_message(message: Message, state: FSMContext):
 
     logger.info(f"Message received from user (ID: {user_id}): {user_message}")
 
-    # Здесь можно добавить интеграцию с ChatGPT API
-    # Пример:
-    # gpt_response = await get_gpt_response(user_message)
+    await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
+
     gpt_response = await get_gpt_response(user_message)
 
     await message.answer(gpt_response)

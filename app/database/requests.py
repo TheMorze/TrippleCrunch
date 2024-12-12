@@ -154,7 +154,11 @@ class Database:
             if user:
                 settings = {
                     "language": user.language,
-                    "chat_model": user.chat_model
+                    "chat_model": user.chat_model,
+                    "gpt4o_access": user.gpt4o_access,
+                    "scenary_access": user.scenary_access,
+                    "token_balance": user.token_balance,
+                    "banned": user.banned
                 }
                 logger.debug(f"User settings retrieved (ID: {user_id}): {settings}")
                 return settings
@@ -174,7 +178,7 @@ class Database:
         :param value: Значение настройки.
         :return: True, если настройка установлена успешно, иначе False.
         """
-        allowed_settings = {"language", "chat_model"}
+        allowed_settings = {"language", "chat_model", "gpt4o_access", "scenary_access", "token_balance", "banned"}
         if setting not in allowed_settings:
             logger.warning(f"Attempted to set unknown setting: {setting}")
             return False
