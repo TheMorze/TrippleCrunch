@@ -16,6 +16,7 @@ from app.keyboards.inline_keyboards import (
     get_hide_keyboard,
     get_choose_model_keyboard,
     get_approve_gpt4o_keyboard,
+    get_approve_llama3_keyboard,
     get_approve_scenary_keyboard
 )
 
@@ -23,7 +24,7 @@ from app.keyboards.reply_keyboards import (
     get_menu_keyboard
 )
 
-from app.service.helpers import get_gpt_response
+from app.service.helpers import get_gpt_response, get_llama_response
 
 from aiogram.types.reply_keyboard_markup import ReplyKeyboardMarkup
 
@@ -163,7 +164,7 @@ async def callback_hide(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     settings = await Database.get_user_settings(user_id=user_id)
 
-    if state.get_state() not in (FSMModel.waiting_for_message_gpt4o, FSMModel.waiting_for_message_scenary):
+    if state.get_state() not in (FSMModel.waiting_for_message_gpt4o, FSMModel.waiting_for_message_llama3, FSMModel.waiting_for_message_scenary):
         await state.clear()
 
     await callback.message.delete()
@@ -203,6 +204,12 @@ async def callback_choose_model(callback: CallbackQuery, state: FSMContext):
         else:
             text = LEXICON_EN['gpt4o_choice']
         keyboard = await get_approve_gpt4o_keyboard(lang=cur_lang)
+    elif model == "llama3":
+        if cur_lang == 'ru':
+            text = LEXICON_RU['llama3_choice']
+        else:
+            text = LEXICON_EN['llama3_choice']
+        keyboard = await get_approve_llama3_keyboard(lang=cur_lang)
     elif model == "scenary":
         if cur_lang == 'ru':
             text = LEXICON_RU['scenary_choice']
@@ -240,6 +247,11 @@ async def callback_approve_model(callback: CallbackQuery, state: FSMContext):
                 text = "Модель GPT4o успешно выбрана."
             else:
                 text = "GPT4o model has been successfully selected."
+        elif model == "llama3":
+            if cur_lang == 'ru':
+                text = "Модель Llama3 успешно выбрана."
+            else:
+                text = "Llama3 model has been successfully selected."
         elif model == "scenary":
             if cur_lang == 'ru':
                 text = "Режим «сценарный» успешно выбран."
@@ -307,6 +319,9 @@ async def cmd_chat_start(message: Message, state: FSMContext):
     if model == "gpt4o":
         full_model = "GPT4o"
         await state.set_state(FSMModel.waiting_for_message_gpt4o)
+    elif model == "llama3":
+        full_model = "Llama3"
+        await state.set_state(FSMModel.waiting_for_message_llama3)
     elif model == "scenary":
         full_model = "Scenary"
         await state.set_state(FSMModel.waiting_for_message_scenary)
@@ -345,6 +360,30 @@ async def process_gpt4o_message(message: Message, state: FSMContext):
 
     await message.answer(gpt_response)
     logger.info(f"Response sent to user (ID: {user_id}): {gpt_response}")
+
+
+@router.message(StateFilter(FSMModel.waiting_for_message_llama3))
+async def process_llama3_message(message: Message, state: FSMContext):
+    """
+    Обработчик сообщений в состоянии общения с Llama3.
+    """
+    user_message = message.text
+    user_id = message.from_user.id
+    settings = await Database.get_user_settings(user_id=user_id)
+    if settings:
+        cur_lang = settings.get('language', 'ru')
+    else:
+        cur_lang = 'ru'  # Default language
+
+    logger.info(f"Message received from user (ID: {user_id}): {user_message}")
+
+    # Здесь можно добавить интеграцию с Llama API
+    # Пример:
+    # llama_response = await get_llama_response(user_message)
+    llama_response = await get_llama_response(user_message)
+
+    await message.answer(llama_response)
+    logger.info(f"Response sent to user (ID: {user_id}): {llama_response}")
 
 
 @router.message(StateFilter(FSMModel.waiting_for_message_scenary))

@@ -15,6 +15,7 @@ class FSMModel(StatesGroup):
 
 
     waiting_for_message_gpt4o = State()   # Ожидание сообщения от пользователя (GPT4o)
+    waiting_for_message_llama3 = State()  # Ожидание сообщения от пользователя (Llama3)
     waiting_for_message_scenary = State() # Ожидание сообщения от пользователя (Scenary)
 
     gpt4o_processing_message = State()    # Обработка сообщения
